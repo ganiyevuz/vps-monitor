@@ -1,25 +1,50 @@
-FROM python:3.12-slim
+# Use the official uv image with Python 3.12 and uv preinstalled
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm
 
+# Set working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    postgresql-client \
+# Set timezone
+ENV TZ=Asia/Tashkent
+
+# Enable bytecode compilation for performance
+ENV UV_COMPILE_BYTECODE=1
+
+# Force uv to copy instead of symlink (important in Docker bind mounts)
+ENV UV_LINK_MODE=copy
+ENV UV_NO_SOURCE=1
+
+# SYSTEM DEPS: install OS-level dependencies (update this list if needed)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev \
+    tzdata \
+    poppler-utils \
+    antiword \
+    unrtf \
+    libreoffice \
+    && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
+    && echo $TZ > /etc/timezone \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies using uv
-RUN pip install uv
+# Step 1: Install dependencies only (without app code)
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked --no-install-project --no-dev
 
-# Copy pyproject.toml and install dependencies
-COPY pyproject.toml uv.lock* ./
-RUN uv sync --frozen
+# Step 2: Add full source and install the app package (only rebuilds if app code changes)
+COPY . /app
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-dev
 
-# Copy application code
-COPY . .
+# Step 3: Install development dependencies (optional, only if you need them)
 
-# Collect static files
-RUN python manage.py collectstatic --noinput || true
+COPY entrypoint.sh /entrypoint.sh
+#COPY aiobot/entrypoint.sh /aiobot-entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-EXPOSE 8000
+# Expose app-level CLI or packages via venv
+ENV PATH="/app/.venv/bin:$PATH"
 
-CMD ["gunicorn", "conf.wsgi:application", "--bind", "0.0.0.0:8000"]
+# Default entrypoint (can be overridden by Docker Compose or `docker run`)
+ENTRYPOINT ["/entrypoint.sh"]
