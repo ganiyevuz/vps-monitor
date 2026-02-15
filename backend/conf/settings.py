@@ -35,6 +35,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     # My apps
+    "providers",
+    "vps",
     # Third-party libraries
     "rest_framework",
     "drf_spectacular",
@@ -83,16 +85,27 @@ WSGI_APPLICATION = "conf.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("DATABASE_NAME"),
-        "USER": os.getenv("DATABASE_USER"),
-        "PASSWORD": os.getenv("DATABASE_PASSWORD"),
-        "HOST": os.getenv("DATABASE_HOST", default="postgres"),
-        "PORT": os.getenv("DATABASE_PORT"),
+DATABASE_TYPE = os.getenv("DATABASE_TYPE", "postgresql")
+
+if DATABASE_TYPE == "sqlite":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.getenv("DB_PATH", os.path.join(BASE_DIR, "db.sqlite3")),
+        }
     }
-}
+else:
+    # PostgreSQL (default)
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("DB_NAME") or os.getenv("DATABASE_NAME"),
+            "USER": os.getenv("DB_USER") or os.getenv("DATABASE_USER"),
+            "PASSWORD": os.getenv("DB_PASSWORD") or os.getenv("DATABASE_PASSWORD"),
+            "HOST": os.getenv("DB_HOST") or os.getenv("DATABASE_HOST", default="postgres"),
+            "PORT": os.getenv("DB_PORT") or os.getenv("DATABASE_PORT"),
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -178,6 +191,7 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "drf_standardized_errors.handler.exception_handler",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 100,
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     # 'DEFAULT_THROTTLE_CLASSES': [
     #     'rest_framework.throttling.AnonRateThrottle',
     #     'rest_framework.throttling.UserRateThrottle'
@@ -276,3 +290,6 @@ X_FRAME_OPTIONS = "DENY"
 SESSION_COOKIE_SECURE = True
 API_VERSION = os.getenv("BACKEND_VERSION", "v1")
 BACKEND_DOMAIN = os.getenv("BACKEND_DOMAIN", "v1")
+
+# Credential Encryption
+ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "change-this-32-char-key-prod!")

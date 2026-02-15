@@ -1,169 +1,223 @@
-# Django Project Template
+# VPS Monitor
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+A modern, full-stack VPS monitoring dashboard for managing cloud infrastructure across multiple providers (Contabo and DigitalOcean) in one unified interface.
 
-A modern, production-ready Django project template for scalable web applications using **`uv`** for dependency management.
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Python](https://img.shields.io/badge/python-3.12+-blue.svg)
+![Node.js](https://img.shields.io/badge/node.js-18+-green.svg)
+![React](https://img.shields.io/badge/react-18+-blue.svg)
 
----
+## ✨ Features
 
-## 🚀 Features
+- 🌍 **Multi-Provider Support** - Monitor VPS instances across Contabo and DigitalOcean
+- 📊 **Unified Dashboard** - See all instances from all providers in one place
+- 🔐 **Secure Credentials** - Encrypted API credentials storage with Fernet encryption
+- 🎨 **Modern UI/UX** - Premium design with smooth animations and responsive layout
+- 📱 **Fully Responsive** - Works seamlessly on desktop, tablet, and mobile
+- ⚡ **Real-time Sync** - Auto-refresh data every minute with manual sync option
+- 🔍 **Advanced Filtering** - Filter instances by provider, status, region, and more
+- 📈 **Sortable Tables** - Click column headers to sort ascending/descending
+- 🔄 **Smart Caching** - Redis-backed caching for optimal performance
+- 🎯 **Toast Notifications** - Non-intrusive, user-friendly notifications
+- 🧪 **Connection Testing** - Test provider connections before adding
 
-* 🧩 **Modular App Structure**: All Django apps live in `apps/` for easy scalability and separation of concerns.
-* 🐳 **Docker & Docker Compose**: Full support for local and production environments with Docker.
-* 🗄️ **PostgreSQL & Redis**: Production-grade database and cache/backing store.
-* ☁️ **S3/MinIO Storage**: Optional S3-compatible storage for media files.
-* 🦾 **REST API**: Built-in Django REST Framework, JWT authentication, filtering, and error handling.
-* 🧑‍💻 **Admin UI**: Jazzmin for a beautiful Django admin interface.
-* 🧪 **Testing & Linting**: Pytest, Flake8, and Debug Toolbar for robust development.
-* 📦 **Makefile**: Common commands for migrations, dependency updates, and secret key generation.
-* 📊 **Monitoring**: Integrated Prometheus and Grafana dashboards for metrics and alerting.
-* 🔐 **Security**: Django Axes for brute-force protection, CORS, and secure settings.
-* 📦 **CI/CD Ready**: Example GitHub Actions workflow for build and deployment.
-* 🤖 **Telegram Notifications**: Deployment script can notify via Telegram on success/failure.
-* 🌐 **Traefik Reverse Proxy**: Traefik is used for smart routing, HTTPS, and service discovery in Docker.
+## 🏗️ Tech Stack
 
----
+### Backend
+- **Framework**: Django 5.2 + Django REST Framework
+- **Database**: PostgreSQL
+- **Cache**: Redis
+- **Auth**: JWT (django-rest-simplejwt)
+- **Encryption**: Fernet (cryptography)
 
-## 🛠️ Tech Stack & Integrations
+### Frontend
+- **Framework**: React 18 + TypeScript
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS v3
+- **State Management**: Zustand (auth) + React Query (server state)
+- **UI Components**: Lucide React icons
+- **Routing**: React Router v6
 
-* **Django 5.2**
-* **Django REST Framework**
-* **PostgreSQL**
-* **Redis**
-* **Docker & Docker Compose**
-* **Prometheus & Grafana**
-* **MinIO (S3-compatible storage)**
-* **Celery (with Redis broker)**
-* **drf-yasg (Swagger/OpenAPI docs)**
-* **django-debug-toolbar**
-* **pytest, flake8, pyflakes**
-* **Traefik**
-* **GitHub Actions**
-* **uv** for dependency management
+## 📋 Prerequisites
 
----
+- Python 3.12+
+- Node.js 18+
+- PostgreSQL 12+
+- Redis 6+
+
+## 🚀 Quick Start
+
+### Backend Setup
+
+```bash
+# Install dependencies
+cd backend
+uv sync
+
+# Configure environment
+cp ../.env.example ../.env
+
+# Generate encryption key
+python -c "from cryptography.fernet import Fernet; print('ENCRYPTION_KEY=' + Fernet.generate_key().decode())"
+
+# Run migrations
+python manage.py migrate
+
+# Create admin user
+python manage.py createsuperuser
+
+# Start server
+python manage.py runserver
+# Runs on http://localhost:8000
+```
+
+### Frontend Setup
+
+```bash
+# Install dependencies
+cd frontend
+npm install
+
+# Start development server
+npm run dev
+# Runs on http://localhost:5173
+```
+
+## 🎯 Usage
+
+### 1. Login
+- Navigate to http://localhost:5173
+- Enter your admin credentials
+
+### 2. Add a Provider
+
+#### Contabo
+1. Go to **Providers** page
+2. Click **Add Provider**
+3. Fill in:
+   - **Name**: My Contabo Account
+   - **Type**: Contabo
+   - **Client ID**, **Client Secret**, **API User**, **API Password**
+4. Click **Connect Account**
+5. Test connection with the **Test** button
+
+#### DigitalOcean
+1. Go to **Providers** page
+2. Click **Add Provider**
+3. Fill in:
+   - **Name**: My DigitalOcean
+   - **Type**: DigitalOcean
+   - **API Token**
+4. Click **Connect Account**
+5. Test connection with the **Test** button
+
+### 3. View Dashboard
+- **Dashboard**: See all VPS instances, stats, and metrics
+- **Providers**: Manage provider accounts, edit, or delete
+- **Sorting**: Click any column header to sort
+- **Filtering**: Use provider/status/region filters
+- **Refresh**: Manual data sync available
 
 ## 📁 Project Structure
 
 ```
-apps/           # All Django apps
-conf/           # Project config (settings, urls, wsgi, asgi, swagger)
-deployment/     # Docker, Nginx, Prometheus, Grafana, Traefik, CI/CD scripts
-requirements/   # Removed in UV workflow
-uv.lock         # Locked dependencies managed by uv
-pyproject.toml  # uv config file
-Makefile        # Common dev commands
-example.env     # Example environment variables
+vps-monitor/
+├── backend/
+│   ├── apps/
+│   │   ├── providers/        # Provider management & OAuth
+│   │   ├── vps/              # VPS aggregation service
+│   │   └── shared/           # Shared utilities
+│   ├── conf/                 # Django settings
+│   └── manage.py
+├── frontend/
+│   ├── src/
+│   │   ├── components/       # React components
+│   │   ├── pages/            # Page components
+│   │   ├── lib/
+│   │   │   ├── api/          # API clients
+│   │   │   ├── hooks/        # React Query hooks
+│   │   │   ├── stores/       # Zustand stores
+│   │   │   └── utils/        # Utilities
+│   │   ├── types/            # TypeScript types
+│   │   └── App.tsx
+│   └── package.json
+└── README.md
 ```
 
-### 🗂️ Deployment Structure
+## 🔌 API Endpoints
 
-* **deployment/backend/**: Production Docker Compose, Prometheus, Grafana configs
-* **deployment/docker-compose.shared.yml**: Shared services (Traefik, MinIO)
-* **deployment/nginx.conf**: Nginx config for static/media
-* **deployment/entrypoint.sh**: Entrypoint for Django/Gunicorn container
-* **deployment/Dockerfile**: Multi-stage Docker build for Django
-* **deployment/deploy.sh**: Bash script for CI/CD and Telegram notifications
+### Authentication
+```
+POST   /api/v1/token/              # Login
+POST   /api/v1/token/refresh/      # Refresh token
+```
 
----
+### Providers
+```
+GET    /api/v1/providers/          # List providers
+POST   /api/v1/providers/          # Create provider
+PATCH  /api/v1/providers/{id}/     # Update provider
+DELETE /api/v1/providers/{id}/     # Delete provider
+POST   /api/v1/providers/{id}/test_connection/  # Test connection
+```
 
-## ⚡ Getting Started (UV-Based)
+### VPS Instances
+```
+GET    /api/v1/vps/                # List all instances
+GET    /api/v1/vps/provider/{id}/  # List by provider
+POST   /api/v1/vps/refresh/        # Refresh cache
+```
 
-### Prerequisites
+## 🔐 Security
 
-* Python 3.10+
-* Docker & Docker Compose
-* `uv` installed (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
+- API credentials are encrypted with Fernet symmetric encryption
+- JWT tokens for API authentication
+- CORS protection for frontend
+- Password fields are hidden in forms
+- No credentials stored in localStorage
+- Secure credential rotation support
 
----
+## 📊 Caching
 
-### Setup
+- **VPS Instances**: 5-minute TTL, per-provider cache keys
+- Manual refresh available to clear cache
 
-1. Clone the repository:
+## 🎨 UI Features
 
-   ```bash
-   git clone https://github.com/ganiyevuz/django-project-template.git
-   cd django-project-template
-   ```
+- **Modern Design**: Premium card-based layout with gradients
+- **Dark Mode Ready**: Full Tailwind CSS theming support
+- **Smooth Animations**: Fade-in, slide-in, zoom animations
+- **Toast Notifications**: Success, error, warning, info types
+- **Responsive Grid**: Auto-adjusts to screen size
+- **Sortable Tables**: Click headers to sort ascending/descending
+- **Human-Readable Dates**: Relative time display (e.g., "2mo ago")
+- **Status Badges**: Color-coded instance and sync statuses
 
-2. Copy the example environment file:
+## 🚀 Building for Production
 
-   ```bash
-   cp example.env .env
-   ```
+### Backend
+```bash
+cd backend
+python manage.py collectstatic
+gunicorn conf.wsgi:application
+```
 
-3. Install dependencies with `uv`:
-
-   ```bash
-   uv sync
-   ```
-
-   This reads `pyproject.toml` and installs the locked versions in `uv.lock`.
-
-4. Build and start the development environment with Docker:
-
-   ```bash
-   cd deployment/dev
-   docker-compose up --build
-   ```
-
----
-
-### Running Locally (without Docker)
-
-1. Create a virtual environment:
-
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate
-   ```
-2. Sync dependencies via `uv`:
-
-   ```bash
-   uv sync
-   ```
-3. Run migrations and start the server:
-
-   ```bash
-   python manage.py migrate
-   python manage.py runserver
-   ```
-
----
-
-### Production
-
-* Use `uv sync --prod` to install production dependencies.
-* Gunicorn is used as the WSGI server (see `deployment/entrypoint.sh`).
-* Use `deployment/prod/docker-compose.yml` for production deployment.
-* Traefik and MinIO are managed via `deployment/docker-compose.shared.yml`.
-
----
-
-## 📊 Monitoring & Observability
-
-* Prometheus scrapes metrics from Django, Traefik, Redis, Node Exporter, and more.
-* Grafana dashboards for real-time monitoring.
-* Alerts and notifications can be configured.
-
----
-
-## 🔒 Security
-
-* Django Axes for brute-force protection
-* CORS and CSRF settings
-* Environment-based secrets
-
----
+### Frontend
+```bash
+cd frontend
+npm run build
+# Deploy dist/ folder to CDN or static hosting
+```
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please open issues or submit pull requests for improvements.
-
----
+Contributions are welcome! Feel free to submit issues and pull requests.
 
 ## 📄 License
 
-MIT
+This project is licensed under the MIT License.
 
+## 👨‍💻 Author
+
+Created with ❤️ for simplified VPS management across multiple cloud providers.
 
