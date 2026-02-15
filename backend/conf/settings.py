@@ -43,12 +43,9 @@ INSTALLED_APPS = [
     "django_filters",
     "drf_standardized_errors",
     "corsheaders",
-    "storages",
-    "django_prometheus",
 ]
 
 MIDDLEWARE = [
-    "django_prometheus.middleware.PrometheusBeforeMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -57,7 +54,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "django_prometheus.middleware.PrometheusAfterMiddleware",
 ]
 
 ROOT_URLCONF = "conf.urls"
@@ -139,42 +135,13 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-# S3 / MinIO Storage Settings
-USE_S3_STORAGE = os.getenv("USE_S3_STORAGE", "False").lower() in ["true", "1", "t"]
-# DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
-if USE_S3_STORAGE:
-    # S3 / MinIO Storage
-    STORAGES = {
-        "default": {
-            "BACKEND": "shared.storage_backends.MediaMinIOStorage",
-        },
-        "staticfiles": {
-            "BACKEND": "shared.storage_backends.StaticMinIOStorage",
-        },
-    }
-    AWS_S3_USE_SSL = os.getenv("AWS_S3_USE_SSL", "False").lower() in ["true", "1", "t"]
-    AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME", None)
-    AWS_S3_ENDPOINT_URL = os.getenv("AWS_S3_ENDPOINT_URL", None)
-    AWS_DEFAULT_ACL = os.getenv("AWS_DEFAULT_ACL", None)
-    AWS_S3_SIGNATURE_VERSION = os.getenv("AWS_S3_SIGNATURE_VERSION", "s3v4")
-
-    # Enable automatic file deletion when the corresponding object is deleted
-    AWS_AUTO_CREATE_BUCKET = True
-    AWS_S3_OBJECT_PARAMETERS = {
-        "CacheControl": "max-age=86400",
-    }
-
-    STATIC_URL = "static/"
-    STATICFILES_LOCATION = "static"
-    MEDIA_FILES_LOCATION = "media"
-else:
     # Local Storage
-    STATIC_URL = "static/"
-    STATIC_ROOT = os.path.join(BASE_DIR, "static")
+STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
-    MEDIA_URL = "media/"
-    MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+MEDIA_URL = "media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -251,7 +218,7 @@ SIMPLE_JWT = {
 }
 CACHES = {
     "default": {
-        "BACKEND": "django_prometheus.cache.backends.redis.RedisCache",
+        "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": os.getenv("CACHE_BACKEND_URL"),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
