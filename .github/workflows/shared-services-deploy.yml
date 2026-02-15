@@ -1,0 +1,142 @@
+name: shared-services-backend-deploy
+
+on:
+  push:
+    branches: [ ]
+  pull_request:
+    branches: [ ]
+
+env:
+  PROJECT_DIR: /var/www/shared-services
+  NETWORK_NAME: shared-network
+
+jobs:
+  deploy:
+    name: 🚀 Deploy Shared Services
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: 🛠️ Generate .env
+        run: |
+          echo "DOMAIN=${{ secrets.DOMAIN }}" > .env
+          echo "LETSENCRYPT_EMAIL=${{ secrets.LETSENCRYPT_EMAIL }}" >> .env
+          echo "MINIO_ROOT_USER=${{ secrets.MINIO_ROOT_USER }}" >> .env
+          echo "MINIO_ROOT_PASSWORD=${{ secrets.MINIO_ROOT_PASSWORD }}" >> .env
+
+      - name: 🔐 Setup SSH Access
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: 📁 Ensure Server Directory Exists
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "mkdir -p '${{ env.PROJECT_DIR }}'"
+
+      - name: 🧮 Check if Compose Changed
+        id: skip_check
+        run: |
+          LOCAL_HASH=$(sha256sum deployment/docker-compose.yml | awk '{print $1}')
+          REMOTE_HASH=$(ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "sha256sum $PROJECT_DIR/docker-compose.yml 2>/dev/null || echo 'none'" | awk '{print $1}')
+          echo "LOCAL_HASH=$LOCAL_HASH"
+          echo "REMOTE_HASH=$REMOTE_HASH"
+          if [ "$LOCAL_HASH" = "$REMOTE_HASH" ]; then
+            echo "skip_deploy=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip_deploy=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 📤 Upload Files to Server
+        if: steps.skip_check.outputs.skip_deploy == 'false'
+        run: |
+          scp -o StrictHostKeyChecking=no .env ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ env.PROJECT_DIR }}/.env
+          scp -o StrictHostKeyChecking=no deployment/docker-compose.yml ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ env.PROJECT_DIR }}/docker-compose.yml
+
+      - name: 🚀 Deploy via Docker Compose
+        if: steps.skip_check.outputs.skip_deploy == 'false'
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} <<'EOF'
+            set -e
+            cd "${{ env.PROJECT_DIR }}"
+
+            echo "🌐 Ensuring shared Docker network exists..."
+            if ! docker network inspect "${{ env.NETWORK_NAME }}" >/dev/null 2>&1; then
+              docker network create "${{ env.NETWORK_NAME }}"
+              echo "✅ Created network: ${{ env.NETWORK_NAME }}"
+            else
+              echo "ℹ️ Network '${{ env.NETWORK_NAME }}' already exists."
+            fi
+
+            echo "🚀 Deploying updated containers..."
+            docker compose down
+            docker compose pull
+            docker compose up -d
+            echo "✅ Deployment complete."
+          EOF
+
+      - name: 🚦 Health Check
+        if: steps.skip_check.outputs.skip_deploy == 'false'
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} <<'EOF'
+            set -e
+            echo "🔍 Checking Traefik health..."
+            status_code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:80 || echo "000")
+            if [[ "$status_code" != "000" ]]; then
+              echo "✅ Traefik is responding (HTTP $status_code)"
+            else
+              echo "❌ Traefik is not reachable."
+              exit 1
+            fi
+          EOF
+
+      - name: 🧹 Clean Up Docker Garbage
+        if: steps.skip_check.outputs.skip_deploy == 'false'
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "docker image prune -af && docker container prune -f"
+
+      - name: ✅ Telegram Notification – Success
+        if: success() && steps.skip_check.outputs.skip_deploy == 'false'
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_IDS }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: html
+          message: |
+            ✅ <b>Deployment Successful</b>
+
+            <b>Service:</b> Shared Services  
+            <b>Host:</b> ${{ secrets.SSH_HOST }}
+
+            📜 <b>Logs:</b> <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Logs</a>
+
+      - name: ⚠️ Telegram Notification – Skipped
+        if: steps.skip_check.outputs.skip_deploy == 'true'
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_IDS }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: html
+          message: |
+            ⚠️ <b>Deployment Skipped</b>
+            No changes detected in <code>docker-compose.yml</code>.
+
+            📜 <b>Logs:</b> <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Logs</a>
+
+      - name: ❌ Telegram Notification – Failure
+        if: failure()
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_IDS }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: html
+          message: |
+            ❌ <b>Deployment Failed</b>
+
+            📜 <b>Logs:</b> <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Logs</a>
+
+            Please investigate the failure.
