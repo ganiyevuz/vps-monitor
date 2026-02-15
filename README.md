@@ -118,6 +118,85 @@ npm run dev
 - **Filtering**: Use provider/status/region filters
 - **Refresh**: Manual data sync available
 
+## 📸 Screenshots
+
+### Dashboard Overview
+View all your VPS instances from Contabo and DigitalOcean in one unified dashboard with real-time stats and metrics.
+```
+![Dashboard](./docs/screenshots/dashboard.png)
+```
+
+**Features Shown:**
+- Premium card-based layout with gradients
+- Real-time instance stats (Total, Running, Stopped)
+- Sortable table with all VPS details
+- Filter by provider, status, and region
+- Last sync timestamp
+- Color-coded status badges
+- One-click refresh
+
+### Providers Management
+Easily add, edit, test, and delete provider accounts with encrypted credential storage.
+```
+![Providers Page](./docs/screenshots/providers.png)
+```
+
+**Features Shown:**
+- Add new provider accounts (Contabo or DigitalOcean)
+- Provider status indicators (Active/Off)
+- Sync status tracking (Success/Failed/Pending)
+- Last sync timestamp
+- Test connection functionality
+- Edit provider credentials
+- Delete provider option
+
+### Provider Form
+Smart form that adapts to the selected provider type with required credentials.
+```
+![Provider Form](./docs/screenshots/provider-form.png)
+```
+
+**Features Shown:**
+- Dynamic form fields based on provider type
+- Contabo: 4 credential fields (Client ID, Secret, API User, Password)
+- DigitalOcean: 1 credential field (API Token)
+- Optional credentials when editing
+- Account activation toggle
+- Connection testing
+
+### VPS Table with Sorting & Filtering
+Interactive table with advanced sorting and filtering capabilities.
+```
+![VPS Table](./docs/screenshots/vps-table.png)
+```
+
+**Features Shown:**
+- Click column headers to sort (ascending/descending)
+- View all VPS details: Name, Status, IP, Region, CPU, RAM, Disk
+- Provider badges (Contabo/DigitalOcean)
+- Creation date with relative time display (e.g., "2mo ago")
+- Color-coded status indicators
+- Responsive design for mobile devices
+
+### Toast Notifications
+User-friendly notifications for all operations (success, error, warning, info).
+```
+![Toast Notifications](./docs/screenshots/notifications.png)
+```
+
+**Features Shown:**
+- Success messages for completed operations
+- Error messages with detailed information
+- Non-intrusive bottom-right positioning
+- Auto-dismiss after 4 seconds
+- Manual close option
+- Stacked multiple notifications
+
+> **Note:** To add screenshots to this README:
+> 1. Create a `docs/screenshots` directory
+> 2. Add your screenshots (dashboard.png, providers.png, provider-form.png, vps-table.png, notifications.png)
+> 3. Uncomment the image markdown lines above
+
 ## 📁 Project Structure
 
 ```

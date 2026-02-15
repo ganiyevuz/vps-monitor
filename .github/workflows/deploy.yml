@@ -1,0 +1,173 @@
+name: 🚀 CI/CD Pipeline for VPS Monitor
+
+on:
+  push:
+    branches: [ master ]
+
+
+env:
+  PROJECT_DIR: /var/www/vps-monitor
+
+jobs:
+
+  build-frontend:
+    name: 🧱 Build & Push Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🔐 Setup SSH Access
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: 🔑 Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: ⚙️ Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🐳 Build & Push Frontend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/vps-monitor-frontend:${{ github.sha }}
+            ${{ secrets.DOCKER_USERNAME }}/vps-monitor-frontend:latest
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-backend:
+    name: 🧱 Build & Push Backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🔐 Setup SSH Access
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: 🔑 Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: ⚙️ Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🐳 Build & Push Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/vps-monitor-backend:${{ github.sha }}
+            ${{ secrets.DOCKER_USERNAME }}/vps-monitor-backend:latest
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+#  deploy:
+#    name: 🚀 Deploy to Server
+#    runs-on: ubuntu-latest
+#    needs: [ build-frontend, build-backend ]
+#
+#    steps:
+#      - name: ⬇️ Checkout Repository
+#        uses: actions/checkout@v4
+#
+#      - name: 🛠️ Generate .env for Deployment
+#        run: |
+#          touch .env
+#          echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
+#          echo "DB_USER=${{ secrets.DB_USER }}" >> .env
+#          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+#          echo "DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" >> .env
+#          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
+#          echo "DEBUG=${{ secrets.DEBUG }}" >> .env
+#          echo "ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}" >> .env
+#          echo "ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}" >> .env
+#          echo "CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}" >> .env
+#          echo "LETSENCRYPT_EMAIL=${{ secrets.LETSENCRYPT_EMAIL }}" >> .env
+#          echo "BACKEND_DOMAIN=${{ secrets.BACKEND_DOMAIN }}" >> .env
+#          echo "FRONTEND_DOMAIN=${{ secrets.FRONTEND_DOMAIN }}" >> .env
+#          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" >> .env
+#          echo "BACKEND_IMAGE=${{ secrets.DOCKER_USERNAME }}/vps-monitor-backend:${{ github.sha }}" >> .env
+#          echo "FRONTEND_IMAGE=${{ secrets.DOCKER_USERNAME }}/vps-monitor-frontend:${{ github.sha }}" >> .env
+#
+#      - name: 🔐 Setup SSH Access
+#        uses: webfactory/ssh-agent@v0.9.0
+#        with:
+#          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+#
+#      - name: 📁 Create Directories on Server
+#        run: |
+#          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+#            mkdir -p ${{ env.PROJECT_DIR }}
+#            mkdir -p ${{ env.PROJECT_DIR }}/letsencrypt
+#          "
+#
+#      - name: 📤 Upload Files to Server
+#        run: |
+#          scp -o StrictHostKeyChecking=no deployment/docker-compose.yml .env ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ env.PROJECT_DIR }}/
+#
+#      - name: 🚀 Deploy Backend & Frontend on Server
+#        run: |
+#          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+#            cd ${{ env.PROJECT_DIR }}
+#            docker compose pull
+#            docker compose up -d
+#          "
+#
+#      - name: ⏳ Wait for Services to Be Ready
+#        run: |
+#          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+#            echo 'Waiting for services to start...'
+#            sleep 10
+#            docker compose ps
+#          "
+#
+#      - name: 🗑️ Clean Up Docker Garbage
+#        run: |
+#          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+#            docker image prune -af --filter 'until=72h'
+#            docker container prune -f
+#          "
+#
+#      - name: ✅ Telegram Notification - Success
+#        if: success()
+#        uses: appleboy/telegram-action@master
+#        with:
+#          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+#          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+#          message: |
+#            ✅ VPS Monitor Deployment Successful
+#            Branch: ${{ github.ref }}
+#            Commit: ${{ github.sha }}
+#            By: ${{ github.actor }}
+#            Backend: https://${{ secrets.BACKEND_DOMAIN }}
+#            Frontend: https://${{ secrets.FRONTEND_DOMAIN }}
+#
+#      - name: ❌ Telegram Notification - Failure
+#        if: failure()
+#        uses: appleboy/telegram-action@master
+#        with:
+#          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+#          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+#          message: |
+#            ❌ VPS Monitor Deployment Failed
+#            Branch: ${{ github.ref }}
+#            Commit: ${{ github.sha }}
+#            By: ${{ github.actor }}
+#            Check logs: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}

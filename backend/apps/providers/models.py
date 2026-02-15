@@ -9,7 +9,9 @@ class Provider(models.Model):
     """Cloud provider account for a user."""
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="providers")
-    name = models.CharField(max_length=255, help_text="Display name for the provider account")
+    name = models.CharField(
+        max_length=255, help_text="Display name for the provider account"
+    )
     provider_type = models.CharField(
         max_length=20,
         choices=ProviderType.choices,

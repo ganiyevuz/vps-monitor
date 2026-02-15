@@ -29,6 +29,7 @@ class VPSAggregator:
             except Exception as e:
                 # Log error but continue with other providers
                 import traceback
+
                 print(f"Error fetching instances from {provider.name}: {str(e)}")
                 traceback.print_exc()
 
@@ -91,23 +92,25 @@ class VPSAggregator:
         """Serialize VPSInstance objects to JSON for caching."""
         data = []
         for instance in instances:
-            data.append({
-                "id": instance.id,
-                "name": instance.name,
-                "status": instance.status,
-                "ipv4": instance.ipv4,
-                "ipv6": instance.ipv6,
-                "cpu_cores": instance.cpu_cores,
-                "ram_mb": instance.ram_mb,
-                "disk_gb": instance.disk_gb,
-                "region": instance.region,
-                "created_at": instance.created_at.isoformat(),
-                "provider_type": instance.provider_type,
-                "provider_account_id": instance.provider_account_id,
-                "plan": instance.plan,
-                "monthly_price": instance.monthly_price,
-                "currency": instance.currency,
-            })
+            data.append(
+                {
+                    "id": instance.id,
+                    "name": instance.name,
+                    "status": instance.status,
+                    "ipv4": instance.ipv4,
+                    "ipv6": instance.ipv6,
+                    "cpu_cores": instance.cpu_cores,
+                    "ram_mb": instance.ram_mb,
+                    "disk_gb": instance.disk_gb,
+                    "region": instance.region,
+                    "created_at": instance.created_at.isoformat(),
+                    "provider_type": instance.provider_type,
+                    "provider_account_id": instance.provider_account_id,
+                    "plan": instance.plan,
+                    "monthly_price": instance.monthly_price,
+                    "currency": instance.currency,
+                }
+            )
         return json.dumps(data)
 
     @staticmethod

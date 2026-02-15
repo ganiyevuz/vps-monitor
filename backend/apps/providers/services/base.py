@@ -7,6 +7,7 @@ from typing import List
 @dataclass
 class VPSInstance:
     """Normalized VPS instance data from any provider."""
+
     id: str
     name: str
     status: str

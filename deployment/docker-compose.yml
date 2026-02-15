@@ -17,7 +17,6 @@ services:
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
       - "--log.level=INFO"
       - "--accesslog=true"
-      - "--metrics.prometheus=true"
       - "--providers.docker.network=shared-network"
       - "--providers.docker.swarmmode=false"
     ports:
@@ -34,50 +33,109 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  minio:
-    image: minio/minio
-    container_name: shared-minio
+  db:
+    image: postgres:16-alpine
+    container_name: vps-monitor-db
     restart: unless-stopped
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - minio_data:/data
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-    command: server /data --console-address ":9001"
+      POSTGRES_DB: ${DB_NAME:-vps_monitor}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     networks:
-      - shared-network
+      - app-network
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
-      interval: 30s
-      timeout: 20s
-      retries: 3
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    container_name: vps-monitor-redis
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --maxmemory
+      - "256mb"
+      - --maxmemory-policy
+      - "allkeys-lru"
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  backend:
+    image: ganiyevuz/vps-monitor-backend:latest
+    container_name: vps-monitor-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_TYPE: postgresql
+      DB_NAME: ${DB_NAME:-vps_monitor}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_HOST: db
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      DJANGO_DEBUG: ${DEBUG:-False}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://localhost:5173}
+      CACHE_BACKEND_URL: redis://redis:6379/1
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+      - shared-network
     labels:
       traefik.enable: "true"
+      traefik.http.routers.backend.rule: "Host(`${BACKEND_DOMAIN}`)"
+      traefik.http.routers.backend.entrypoints: "websecure"
+      traefik.http.routers.backend.tls.certresolver: "le"
+      traefik.http.services.backend.loadbalancer.server.port: "8000"
+      traefik.docker.network: "shared-network"
 
-      # API router
-      traefik.http.routers.minio-api.rule: "Host(`s3.${DOMAIN}`)"
-      traefik.http.routers.minio-api.entrypoints: "websecure"
-      traefik.http.routers.minio-api.tls.certresolver: "le"
-      traefik.http.routers.minio-api.service: "minio-api-service"
-      traefik.http.services.minio-api-service.loadbalancer.server.port: "9000"
-
-      # Console router
-      traefik.http.routers.minio-console.rule: "Host(`minio.${DOMAIN}`)"
-      traefik.http.routers.minio-console.entrypoints: "websecure"
-      traefik.http.routers.minio-console.tls.certresolver: "le"
-      traefik.http.routers.minio-console.service: "minio-console-service"
-      traefik.http.services.minio-console-service.loadbalancer.server.port: "9001"
-
-      prometheus.enable: "true"
-      prometheus.path: "/minio/v2/metrics/cluster"
+  frontend:
+    image: ganiyevuz/vps-monitor-frontend:latest
+    container_name: vps-monitor-frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-https://${BACKEND_DOMAIN}/api/v1}
+    depends_on:
+      - backend
+    networks:
+      - shared-network
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.frontend.rule: "Host(`${FRONTEND_DOMAIN}`)"
+      traefik.http.routers.frontend.entrypoints: "websecure"
+      traefik.http.routers.frontend.tls.certresolver: "le"
+      traefik.http.services.frontend.loadbalancer.server.port: "5173"
+      traefik.docker.network: "shared-network"
 
 volumes:
-  minio_data:
-    driver: local
+  postgres_data:
+  redis_data:
 
 networks:
+  app-network:
+    driver: bridge
   shared-network:
     external: true
+    name: shared-network

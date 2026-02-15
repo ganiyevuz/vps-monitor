@@ -18,23 +18,35 @@ class ProviderAdmin(admin.ModelAdmin):
     )
     list_filter = ("provider_type", "is_active", "created_at")
     search_fields = ("name", "user__username", "user__email")
-    readonly_fields = ("created_at", "updated_at", "last_sync_at", "encrypted_credentials")
+    readonly_fields = (
+        "created_at",
+        "updated_at",
+        "last_sync_at",
+        "encrypted_credentials",
+    )
 
     fieldsets = (
-        ("Basic Info", {
-            "fields": ("name", "user", "provider_type", "is_active")
-        }),
-        ("Credentials", {
-            "fields": ("encrypted_credentials",),
-            "classes": ("collapse",),
-        }),
-        ("Sync Info", {
-            "fields": ("last_sync_at", "last_sync_status"),
-        }),
-        ("Timestamps", {
-            "fields": ("created_at", "updated_at"),
-            "classes": ("collapse",),
-        }),
+        ("Basic Info", {"fields": ("name", "user", "provider_type", "is_active")}),
+        (
+            "Credentials",
+            {
+                "fields": ("encrypted_credentials",),
+                "classes": ("collapse",),
+            },
+        ),
+        (
+            "Sync Info",
+            {
+                "fields": ("last_sync_at", "last_sync_status"),
+            },
+        ),
+        (
+            "Timestamps",
+            {
+                "fields": ("created_at", "updated_at"),
+                "classes": ("collapse",),
+            },
+        ),
     )
 
     def has_delete_permission(self, request, obj=None):

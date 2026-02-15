@@ -10,7 +10,9 @@ from .base import BaseProviderClient, VPSInstance
 class ContaboClient(BaseProviderClient):
     """Contabo API client using OAuth 2.0 password grant flow."""
 
-    AUTH_URL = "https://auth.contabo.com/auth/realms/contabo/protocol/openid-connect/token"
+    AUTH_URL = (
+        "https://auth.contabo.com/auth/realms/contabo/protocol/openid-connect/token"
+    )
     API_BASE_URL = "https://api.contabo.com"
 
     def __init__(self, credentials: dict, provider_id: int):
@@ -111,7 +113,9 @@ class ContaboClient(BaseProviderClient):
         created_at_str = data.get("createdDate", datetime.now().isoformat())
         if isinstance(created_at_str, str):
             try:
-                created_at = datetime.fromisoformat(created_at_str.replace("Z", "+00:00"))
+                created_at = datetime.fromisoformat(
+                    created_at_str.replace("Z", "+00:00")
+                )
             except (ValueError, AttributeError):
                 created_at = datetime.now()
         else:
@@ -123,7 +127,9 @@ class ContaboClient(BaseProviderClient):
 
         # If no productName, try alternative plan identifiers
         if not plan:
-            plan = data.get("productType") or data.get("productId") or data.get("imageId")
+            plan = (
+                data.get("productType") or data.get("productId") or data.get("imageId")
+            )
 
         # If still no plan, construct from resources
         if not plan:
@@ -158,7 +164,9 @@ class ContaboClient(BaseProviderClient):
             disk_gb = disk_mb / 1024
 
         # Use regionName for better readability, fall back to region
-        region = data.get("regionName") or data.get("dataCenter") or data.get("region", "")
+        region = (
+            data.get("regionName") or data.get("dataCenter") or data.get("region", "")
+        )
 
         return VPSInstance(
             id=str(data.get("instanceId")),
@@ -204,8 +212,11 @@ class ContaboClient(BaseProviderClient):
                     "invoice_number": item.get("invoiceNumber", ""),
                     "date": item.get("invoiceDate"),
                     "due_date": item.get("dueDate"),
-                    "amount": float(item.get("totalAmount", 0)) / 100,  # Convert from cents
-                    "status": self._normalize_invoice_status(item.get("invoiceStatus", "")),
+                    "amount": float(item.get("totalAmount", 0))
+                    / 100,  # Convert from cents
+                    "status": self._normalize_invoice_status(
+                        item.get("invoiceStatus", "")
+                    ),
                     "provider_type": "contabo",
                     "provider_account_id": self.provider_id,
                     "raw_data": item,

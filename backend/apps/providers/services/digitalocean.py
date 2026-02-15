@@ -83,7 +83,8 @@ class DigitalOceanClient(BaseProviderClient):
             return self._normalize_instance(droplet)
         except requests.RequestException as e:
             raise Exception(
-                f"Failed to fetch DigitalOcean droplet {instance_id}: {str(e)}")
+                f"Failed to fetch DigitalOcean droplet {instance_id}: {str(e)}"
+            )
 
     def _get_headers(self) -> dict:
         """Get authorization headers."""
@@ -113,7 +114,8 @@ class DigitalOceanClient(BaseProviderClient):
         if isinstance(created_at_str, str):
             try:
                 created_at = datetime.fromisoformat(
-                    created_at_str.replace("Z", "+00:00"))
+                    created_at_str.replace("Z", "+00:00")
+                )
             except (ValueError, AttributeError):
                 created_at = datetime.now()
         else:
@@ -208,7 +210,9 @@ class DigitalOceanClient(BaseProviderClient):
                 invoice_months[invoice_period]["items"].append(item)
 
             # Convert to invoice list
-            for period, invoice_data in sorted(invoice_months.items(), reverse=True)[:limit]:
+            for period, invoice_data in sorted(invoice_months.items(), reverse=True)[
+                :limit
+            ]:
                 try:
                     # Parse the invoice period (YYYY-MM format)
                     invoice_date = datetime.strptime(period, "%Y-%m")

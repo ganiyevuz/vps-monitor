@@ -22,11 +22,13 @@ class VPSViewSet(viewsets.ViewSet):
             instances = self._apply_filters(instances, request)
 
             serializer = VPSInstanceSerializer(instances, many=True)
-            return Response({
-                "results": serializer.data,
-                "count": len(serializer.data),
-                "fetched_at": datetime.utcnow().isoformat()
-            })
+            return Response(
+                {
+                    "results": serializer.data,
+                    "count": len(serializer.data),
+                    "fetched_at": datetime.utcnow().isoformat(),
+                }
+            )
 
         except Exception as e:
             return Response(
@@ -54,11 +56,13 @@ class VPSViewSet(viewsets.ViewSet):
             instances = self._apply_filters(instances, request)
 
             serializer = VPSInstanceSerializer(instances, many=True)
-            return Response({
-                "results": serializer.data,
-                "count": len(serializer.data),
-                "fetched_at": datetime.utcnow().isoformat()
-            })
+            return Response(
+                {
+                    "results": serializer.data,
+                    "count": len(serializer.data),
+                    "fetched_at": datetime.utcnow().isoformat(),
+                }
+            )
 
         except ValueError as e:
             return Response(

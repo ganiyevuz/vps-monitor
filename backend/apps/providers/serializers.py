@@ -19,15 +19,20 @@ class ProviderListSerializer(serializers.ModelSerializer):
             "last_sync_at",
             "last_sync_status",
         ]
-        read_only_fields = ["id", "created_at", "updated_at", "last_sync_at", "last_sync_status"]
+        read_only_fields = [
+            "id",
+            "created_at",
+            "updated_at",
+            "last_sync_at",
+            "last_sync_status",
+        ]
 
 
 class ProviderCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating/updating providers with credentials."""
 
     credentials = serializers.JSONField(
-        write_only=True,
-        help_text="Provider-specific credentials as JSON"
+        write_only=True, help_text="Provider-specific credentials as JSON"
     )
 
     class Meta:
