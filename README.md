@@ -3,8 +3,8 @@
 A modern, full-stack VPS monitoring dashboard for managing cloud infrastructure across multiple providers (Contabo and DigitalOcean) in one unified interface.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Python](https://img.shields.io/badge/python-3.12+-blue.svg)
-![Node.js](https://img.shields.io/badge/node.js-18+-green.svg)
+![Python](https://img.shields.io/badge/python-3.13+-blue.svg)
+![Node.js](https://img.shields.io/badge/node.js-22+-green.svg)
 ![React](https://img.shields.io/badge/react-18+-blue.svg)
 
 ## ✨ Features
@@ -40,10 +40,10 @@ A modern, full-stack VPS monitoring dashboard for managing cloud infrastructure 
 
 ## 📋 Prerequisites
 
-- Python 3.12+
-- Node.js 18+
-- PostgreSQL 12+
-- Redis 6+
+- Python 3.13+
+- Node.js 22+
+- PostgreSQL 16+
+- Redis 7+
 
 ## 🚀 Quick Start
 

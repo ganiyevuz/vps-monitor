@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import List
 
-import requests
+import httpx
 
 from .base import BaseProviderClient, VPSInstance
 
@@ -39,12 +39,13 @@ class ContaboClient(BaseProviderClient):
                 "grant_type": "password",
             }
 
-            response = requests.post(self.AUTH_URL, data=data, timeout=10)
-            response.raise_for_status()
+            with httpx.Client() as client:
+                response = client.post(self.AUTH_URL, data=data, timeout=10)
+                response.raise_for_status()
 
-            self.access_token = response.json().get("access_token")
-            return bool(self.access_token)
-        except (requests.RequestException, ValueError) as e:
+                self.access_token = response.json().get("access_token")
+                return bool(self.access_token)
+        except (httpx.HTTPError, ValueError) as e:
             raise Exception(f"Contabo authentication failed: {str(e)}")
 
     def list_instances(self) -> List[VPSInstance]:
@@ -55,36 +56,37 @@ class ContaboClient(BaseProviderClient):
         instances = []
         page = 1
 
-        while True:
-            try:
-                url = f"{self.API_BASE_URL}/v1/compute/instances"
-                headers = {
-                    "Authorization": f"Bearer {self.access_token}",
-                    "x-request-id": str(uuid.uuid4()),
-                }
-                params = {"page": page}
+        try:
+            with httpx.Client() as client:
+                while True:
+                    url = f"{self.API_BASE_URL}/v1/compute/instances"
+                    headers = {
+                        "Authorization": f"Bearer {self.access_token}",
+                        "x-request-id": str(uuid.uuid4()),
+                    }
+                    params = {"page": page}
 
-                response = requests.get(url, headers=headers, params=params, timeout=10)
-                response.raise_for_status()
+                    response = client.get(url, headers=headers, params=params, timeout=10)
+                    response.raise_for_status()
 
-                data = response.json()
-                items = data.get("data", [])
+                    data = response.json()
+                    items = data.get("data", [])
 
-                if not items:
-                    break
+                    if not items:
+                        break
 
-                for item in items:
-                    instance = self._normalize_instance(item)
-                    instances.append(instance)
+                    for item in items:
+                        instance = self._normalize_instance(item)
+                        instances.append(instance)
 
-                # Check if there are more pages
-                pagination = data.get("pagination", {})
-                if page >= pagination.get("pages", 1):
-                    break
+                    # Check if there are more pages
+                    pagination = data.get("pagination", {})
+                    if page >= pagination.get("pages", 1):
+                        break
 
-                page += 1
-            except requests.RequestException as e:
-                raise Exception(f"Failed to fetch Contabo instances: {str(e)}")
+                    page += 1
+        except httpx.HTTPError as e:
+            raise Exception(f"Failed to fetch Contabo instances: {str(e)}")
 
         return instances
 
@@ -94,18 +96,19 @@ class ContaboClient(BaseProviderClient):
             self.authenticate()
 
         try:
-            url = f"{self.API_BASE_URL}/v1/compute/instances/{instance_id}"
-            headers = {
-                "Authorization": f"Bearer {self.access_token}",
-                "x-request-id": str(uuid.uuid4()),
-            }
+            with httpx.Client() as client:
+                url = f"{self.API_BASE_URL}/v1/compute/instances/{instance_id}"
+                headers = {
+                    "Authorization": f"Bearer {self.access_token}",
+                    "x-request-id": str(uuid.uuid4()),
+                }
 
-            response = requests.get(url, headers=headers, timeout=10)
-            response.raise_for_status()
+                response = client.get(url, headers=headers, timeout=10)
+                response.raise_for_status()
 
-            item = response.json().get("data", {})
-            return self._normalize_instance(item)
-        except requests.RequestException as e:
+                item = response.json().get("data", {})
+                return self._normalize_instance(item)
+        except httpx.HTTPError as e:
             raise Exception(f"Failed to fetch Contabo instance {instance_id}: {str(e)}")
 
     def _normalize_instance(self, data: dict) -> VPSInstance:
@@ -187,55 +190,3 @@ class ContaboClient(BaseProviderClient):
             raw_data=data,
         )
 
-    def list_invoices(self, limit: int = 12) -> list:
-        """Fetch invoices from Contabo."""
-        if not self.access_token:
-            self.authenticate()
-
-        try:
-            url = f"{self.API_BASE_URL}/v1/billing/invoices"
-            headers = {
-                "Authorization": f"Bearer {self.access_token}",
-                "x-request-id": str(uuid.uuid4()),
-            }
-            params = {"size": limit}
-
-            response = requests.get(url, headers=headers, params=params, timeout=10)
-            response.raise_for_status()
-
-            data = response.json()
-            invoices = []
-
-            for item in data.get("data", []):
-                invoice = {
-                    "id": str(item.get("invoiceNumber", "")),
-                    "invoice_number": item.get("invoiceNumber", ""),
-                    "date": item.get("invoiceDate"),
-                    "due_date": item.get("dueDate"),
-                    "amount": float(item.get("totalAmount", 0))
-                    / 100,  # Convert from cents
-                    "status": self._normalize_invoice_status(
-                        item.get("invoiceStatus", "")
-                    ),
-                    "provider_type": "contabo",
-                    "provider_account_id": self.provider_id,
-                    "raw_data": item,
-                }
-                invoices.append(invoice)
-
-            return invoices
-        except requests.RequestException as e:
-            raise Exception(f"Failed to fetch Contabo invoices: {str(e)}")
-
-    @staticmethod
-    def _normalize_invoice_status(status: str) -> str:
-        """Normalize invoice status."""
-        status_lower = status.lower()
-        if status_lower in ["paid", "payed"]:
-            return "Paid"
-        elif status_lower in ["pending", "outstanding", "open"]:
-            return "Pending"
-        elif status_lower in ["overdue", "due"]:
-            return "Overdue"
-        else:
-            return status

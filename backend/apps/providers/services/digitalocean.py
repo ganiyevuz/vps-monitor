@@ -1,7 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List
 
-import requests
+import httpx
 
 from .base import BaseProviderClient, VPSInstance
 
@@ -24,14 +24,15 @@ class DigitalOceanClient(BaseProviderClient):
         """Test authentication by making a simple API call."""
         try:
             headers = self._get_headers()
-            response = requests.get(
-                f"{self.API_BASE_URL}/account",
-                headers=headers,
-                timeout=10,
-            )
-            response.raise_for_status()
-            return True
-        except requests.RequestException:
+            with httpx.Client() as client:
+                response = client.get(
+                    f"{self.API_BASE_URL}/account",
+                    headers=headers,
+                    timeout=10,
+                )
+                response.raise_for_status()
+                return True
+        except httpx.HTTPError:
             return False
 
     def list_instances(self) -> List[VPSInstance]:
@@ -44,28 +45,29 @@ class DigitalOceanClient(BaseProviderClient):
             params = {"per_page": 250}  # Max per page
             page = 1
 
-            while True:
-                params["page"] = page
-                response = requests.get(url, headers=headers, params=params, timeout=10)
-                response.raise_for_status()
+            with httpx.Client() as client:
+                while True:
+                    params["page"] = page
+                    response = client.get(url, headers=headers, params=params, timeout=10)
+                    response.raise_for_status()
 
-                data = response.json()
-                droplets = data.get("droplets", [])
+                    data = response.json()
+                    droplets = data.get("droplets", [])
 
-                if not droplets:
-                    break
+                    if not droplets:
+                        break
 
-                for droplet in droplets:
-                    instance = self._normalize_instance(droplet)
-                    instances.append(instance)
+                    for droplet in droplets:
+                        instance = self._normalize_instance(droplet)
+                        instances.append(instance)
 
-                # Check if there are more pages
-                links = data.get("links", {})
-                if "pages" not in links or "next" not in links.get("pages", {}):
-                    break
+                    # Check if there are more pages
+                    links = data.get("links", {})
+                    if "pages" not in links or "next" not in links.get("pages", {}):
+                        break
 
-                page += 1
-        except requests.RequestException as e:
+                    page += 1
+        except httpx.HTTPError as e:
             raise Exception(f"Failed to fetch DigitalOcean droplets: {str(e)}")
 
         return instances
@@ -73,15 +75,16 @@ class DigitalOceanClient(BaseProviderClient):
     def get_instance(self, instance_id: str) -> VPSInstance:
         """Fetch a single droplet by ID."""
         try:
-            url = f"{self.API_BASE_URL}/droplets/{instance_id}"
-            headers = self._get_headers()
+            with httpx.Client() as client:
+                url = f"{self.API_BASE_URL}/droplets/{instance_id}"
+                headers = self._get_headers()
 
-            response = requests.get(url, headers=headers, timeout=10)
-            response.raise_for_status()
+                response = client.get(url, headers=headers, timeout=10)
+                response.raise_for_status()
 
-            droplet = response.json().get("droplet", {})
-            return self._normalize_instance(droplet)
-        except requests.RequestException as e:
+                droplet = response.json().get("droplet", {})
+                return self._normalize_instance(droplet)
+        except httpx.HTTPError as e:
             raise Exception(
                 f"Failed to fetch DigitalOcean droplet {instance_id}: {str(e)}"
             )
@@ -170,71 +173,3 @@ class DigitalOceanClient(BaseProviderClient):
             raw_data=data,
         )
 
-    def list_invoices(self, limit: int = 12) -> list:
-        """Fetch invoices from DigitalOcean using the billing history endpoint."""
-        try:
-            headers = self._get_headers()
-            invoices = []
-
-            # Fetch billing history
-            url = f"{self.API_BASE_URL}/customers/my/billing_history"
-            params = {"limit": limit}
-            response = requests.get(url, headers=headers, params=params, timeout=10)
-            response.raise_for_status()
-
-            data = response.json()
-            billing_history = data.get("billing_history", [])
-
-            # Group by invoice month to create invoices
-            invoice_months = {}
-            for item in billing_history:
-                # Get the invoice period (YYYY-MM format)
-                invoice_period = item.get("invoice_period", "")
-                if not invoice_period:
-                    continue
-
-                # Aggregate amounts by invoice period
-                if invoice_period not in invoice_months:
-                    invoice_months[invoice_period] = {
-                        "period": invoice_period,
-                        "amount": 0.0,
-                        "items": [],
-                    }
-
-                try:
-                    amount = float(item.get("amount", 0))
-                    invoice_months[invoice_period]["amount"] += amount
-                except (ValueError, TypeError):
-                    pass
-
-                invoice_months[invoice_period]["items"].append(item)
-
-            # Convert to invoice list
-            for period, invoice_data in sorted(invoice_months.items(), reverse=True)[
-                :limit
-            ]:
-                try:
-                    # Parse the invoice period (YYYY-MM format)
-                    invoice_date = datetime.strptime(period, "%Y-%m")
-                    # Due date is typically end of month or 15 days after
-                    due_date = invoice_date + timedelta(days=30)
-
-                    invoice = {
-                        "id": period,
-                        "invoice_number": f"INV-{period.replace('-', '')}",
-                        "date": invoice_date.isoformat(),
-                        "due_date": due_date.isoformat(),
-                        "amount": invoice_data["amount"],
-                        "status": "Paid",  # DigitalOcean billing history shows only paid items
-                        "provider_type": "digitalocean",
-                        "provider_account_id": self.provider_id,
-                        "raw_data": invoice_data,
-                    }
-                    invoices.append(invoice)
-                except (ValueError, TypeError, KeyError) as e:
-                    print(f"Error parsing invoice period {period}: {str(e)}")
-                    continue
-
-            return invoices
-        except requests.RequestException as e:
-            raise Exception(f"Failed to fetch DigitalOcean invoices: {str(e)}")
