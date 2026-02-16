@@ -21,7 +21,9 @@ export function VPSDashboard() {
   const formatFetchedTime = (isoString?: string) => {
     if (!isoString) return 'Never';
     try {
-      const date = new Date(isoString);
+      // Ensure the ISO string has Z suffix for UTC interpretation
+      const utcString = isoString.endsWith('Z') ? isoString : `${isoString}Z`;
+      const date = new Date(utcString);
       const now = new Date();
       const diffMs = now.getTime() - date.getTime();
       const diffMins = Math.floor(diffMs / 60000);
@@ -34,7 +36,14 @@ export function VPSDashboard() {
       if (diffHours === 1) return '1 hour ago';
       if (diffHours < 24) return `${diffHours} hours ago`;
 
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZoneName: 'short',
+      });
     } catch {
       return 'Unknown';
     }

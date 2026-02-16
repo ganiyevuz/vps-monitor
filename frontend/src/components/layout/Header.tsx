@@ -1,9 +1,10 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../lib/stores/authStore';
-import { LogOut, LayoutDashboard, Settings } from 'lucide-react';
+import { LogOut, LayoutDashboard, Settings, DollarSign } from 'lucide-react';
 
 export function Header() {
   const { user, logout } = useAuthStore();
+  const location = useLocation();
 
   return (
     <header className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-700 shadow-xl sticky top-0 z-50">
@@ -20,17 +21,36 @@ export function Header() {
         <nav className="flex items-center gap-8">
           <Link
             to="/dashboard"
-            className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors duration-200 font-medium"
+            className={`flex items-center gap-2 transition-colors duration-200 font-medium ${
+              location.pathname === '/dashboard'
+                ? 'text-white'
+                : 'text-slate-300 hover:text-white'
+            }`}
           >
             <LayoutDashboard size={18} />
             Dashboard
           </Link>
           <Link
             to="/providers"
-            className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors duration-200 font-medium"
+            className={`flex items-center gap-2 transition-colors duration-200 font-medium ${
+              location.pathname === '/providers'
+                ? 'text-white'
+                : 'text-slate-300 hover:text-white'
+            }`}
           >
             <Settings size={18} />
             Providers
+          </Link>
+          <Link
+            to="/billing"
+            className={`flex items-center gap-2 transition-colors duration-200 font-medium ${
+              location.pathname === '/billing'
+                ? 'text-white'
+                : 'text-slate-300 hover:text-white'
+            }`}
+          >
+            <DollarSign size={18} />
+            Billing
           </Link>
 
           <div className="flex items-center gap-4 ml-4 pl-4 border-l border-slate-700">

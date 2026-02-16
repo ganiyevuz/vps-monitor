@@ -4,6 +4,7 @@ import { ToastContainer } from './components/ui/ToastContainer';
 import { LoginPage } from './pages/Login';
 import { DashboardPage } from './pages/Dashboard';
 import { ProvidersPage } from './pages/Providers';
+import { BillingPage } from './pages/Billing';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
@@ -30,6 +31,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ProvidersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/billing"
+          element={
+            <ProtectedRoute>
+              <BillingPage />
             </ProtectedRoute>
           }
         />
