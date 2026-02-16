@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Cloud, Edit2, X } from 'lucide-react';
 import { Layout } from '../components/layout/Layout';
+import { usePageTitle } from '../lib/hooks/usePageTitle';
 import { ProviderForm } from '../components/providers/ProviderForm';
 import {
   useProviders,
@@ -14,6 +15,7 @@ import { formatDate } from '../lib/utils';
 import { toast } from '../lib/utils/toast';
 
 export function ProvidersPage() {
+  usePageTitle('Providers');
   const [showModal, setShowModal] = useState(false);
   const [editingProvider, setEditingProvider] = useState<Provider | null>(null);
   const [testingId, setTestingId] = useState<number | undefined>();

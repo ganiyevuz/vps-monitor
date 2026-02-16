@@ -1,4 +1,5 @@
 import { useVPS } from '../lib/hooks/useVPS';
+import { usePageTitle } from '../lib/hooks/usePageTitle';
 import { Layout } from '../components/layout/Layout';
 import { RefreshCw, AlertCircle, Clock, DollarSign, Server, TrendingUp } from 'lucide-react';
 import { useRefreshVPS } from '../lib/hooks/useVPS';
@@ -6,6 +7,7 @@ import { CostChart } from '../components/billing/CostChart';
 import { ProviderCostCard } from '../components/billing/ProviderCostCard';
 
 export function BillingPage() {
+  usePageTitle('Billing');
   const { data, isLoading, error } = useVPS();
   const instances = data?.instances ?? [];
   const fetchedAt = data?.fetchedAt;
