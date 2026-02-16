@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { VPSInstance } from '../../types/vps';
 import { formatDateHumanReadable, getRelativeTime } from '../../lib/utils';
 import { VPSStatusBadge } from './VPSStatusBadge';
+import { PriceModal } from './PriceModal';
 import { Calendar, ChevronUp, ChevronDown } from 'lucide-react';
 
 interface VPSTableProps {
@@ -12,9 +13,17 @@ interface VPSTableProps {
 type SortColumn = 'name' | 'status' | 'ipv4' | 'plan' | 'cpu' | 'disk' | 'price' | 'provider' | 'created';
 type SortDirection = 'asc' | 'desc';
 
+interface SelectedInstance {
+  id: string;
+  name: string;
+  providerId: number;
+  currentPrice: number | null;
+}
+
 export function VPSTable({ instances, isLoading }: VPSTableProps) {
   const [sortColumn, setSortColumn] = useState<SortColumn>('created');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [selectedInstance, setSelectedInstance] = useState<SelectedInstance | null>(null);
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -146,7 +155,15 @@ export function VPSTable({ instances, isLoading }: VPSTableProps) {
                   {instance.cpu_cores}C / {instance.ram_mb >= 1024 ? `${Math.round(instance.ram_mb / 1024)}GB` : `${instance.ram_mb}MB`}
                 </td>
                 <td className="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">{Math.round(instance.disk_gb)}GB</td>
-                <td className="px-6 py-4 text-sm font-medium text-slate-900 whitespace-nowrap">
+                <td
+                  className="px-6 py-4 text-sm font-medium text-slate-900 whitespace-nowrap cursor-pointer hover:bg-blue-100/50 transition-colors rounded"
+                  onClick={() => setSelectedInstance({
+                    id: instance.id,
+                    name: instance.name,
+                    providerId: instance.provider_account_id,
+                    currentPrice: instance.monthly_price,
+                  })}
+                >
                   {instance.monthly_price ? (
                     <span className="text-green-700 font-semibold">
                       ${instance.monthly_price.toFixed(2)}/mo
@@ -175,6 +192,18 @@ export function VPSTable({ instances, isLoading }: VPSTableProps) {
           </tbody>
         </table>
       </div>
+
+      {/* Price Modal */}
+      {selectedInstance && (
+        <PriceModal
+          isOpen={!!selectedInstance}
+          instanceId={selectedInstance.id}
+          instanceName={selectedInstance.name}
+          providerId={selectedInstance.providerId}
+          currentPrice={selectedInstance.currentPrice}
+          onClose={() => setSelectedInstance(null)}
+        />
+      )}
     </div>
   );
 }

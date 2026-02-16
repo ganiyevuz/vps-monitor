@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from vps.models import InstanceCustomPrice
+
 
 class VPSInstanceSerializer(serializers.Serializer):
     """Serializer for VPS instances from multiple providers."""
@@ -19,3 +21,22 @@ class VPSInstanceSerializer(serializers.Serializer):
     plan = serializers.CharField(allow_null=True)
     monthly_price = serializers.FloatField(allow_null=True)
     currency = serializers.CharField(default="USD")
+
+
+class InstanceCustomPriceSerializer(serializers.ModelSerializer):
+    """Serializer for custom instance prices."""
+
+    class Meta:
+        model = InstanceCustomPrice
+        fields = [
+            "id",
+            "provider",
+            "instance_id",
+            "instance_ip",
+            "monthly_price",
+            "currency",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["created_at", "updated_at"]

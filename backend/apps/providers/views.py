@@ -28,7 +28,7 @@ class ProviderViewSet(viewsets.ModelViewSet):
         """Create provider with user context."""
         serializer.save(user=self.request.user)
 
-    @action(detail=True, methods=["post"])
+    @action(detail=True, methods=["post"], url_path="test-connection")
     def test_connection(self, request, pk=None):
         """Test connection to provider API and update sync status."""
         provider = self.get_object()

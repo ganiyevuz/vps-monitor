@@ -15,7 +15,7 @@ export const vpsApi = {
     if (filters?.region) params.append('region', filters.region);
 
     const queryString = params.toString();
-    const url = queryString ? `/vps/?${queryString}` : '/vps/';
+    const url = queryString ? `vps?${queryString}` : 'vps';
 
     const response = await client.get<VPSResponse>(url);
     return response.data;
@@ -27,14 +27,14 @@ export const vpsApi = {
     if (filters?.region) params.append('region', filters.region);
 
     const response = await client.get<VPSResponse>(
-      `/vps/by_provider/?${params.toString()}`
+      `vps/by-provider?${params.toString()}`
     );
     return response.data;
   },
 
   refresh: async () => {
     const response = await client.post<{ status: string; message: string }>(
-      '/vps/refresh/'
+      'vps/refresh'
     );
     return response.data;
   },

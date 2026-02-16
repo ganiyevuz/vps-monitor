@@ -4,7 +4,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-from .serializers import VPSInstanceSerializer
+from vps.models import InstanceCustomPrice
+from .serializers import VPSInstanceSerializer, InstanceCustomPriceSerializer
 from .services.aggregator import VPSAggregator
 
 
@@ -36,7 +37,7 @@ class VPSViewSet(viewsets.ViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    @action(detail=False, methods=["get"])
+    @action(detail=False, methods=["get"], url_path="by-provider")
     def by_provider(self, request):
         """Get VPS instances from a specific provider."""
         provider_id = request.query_params.get("provider_id")
@@ -75,7 +76,7 @@ class VPSViewSet(viewsets.ViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    @action(detail=False, methods=["post"])
+    @action(detail=False, methods=["post"], url_path="refresh")
     def refresh(self, request):
         """Refresh cache for all providers."""
         try:
@@ -104,3 +105,20 @@ class VPSViewSet(viewsets.ViewSet):
             instances = [i for i in instances if i.region == region_filter]
 
         return instances
+
+
+class InstanceCustomPriceViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing custom instance prices."""
+
+    queryset = InstanceCustomPrice.objects.all()
+    serializer_class = InstanceCustomPriceSerializer
+    permission_classes = [IsAuthenticated]
+    filterset_fields = ["provider", "is_active"]
+    search_fields = ["instance_id", "instance_ip"]
+
+    def get_queryset(self):
+        """Filter custom prices by user's providers."""
+        user = self.request.user
+        return InstanceCustomPrice.objects.filter(
+            provider__user=user
+        ).select_related("provider")

@@ -7,6 +7,7 @@ from django.core.cache import cache
 from providers.models import Provider
 from providers.services.base import VPSInstance
 from providers.services.factory import ProviderClientFactory
+from vps.services.price_loader import PriceLoader
 
 
 class VPSAggregator:
@@ -21,10 +22,16 @@ class VPSAggregator:
         instances = []
 
         active_providers = Provider.objects.filter(user=user, is_active=True)
+        provider_ids = list(active_providers.values_list("id", flat=True))
+
+        # Preload all custom prices (avoids N+1 queries)
+        price_loader = PriceLoader(provider_ids)
 
         for provider in active_providers:
             try:
                 provider_instances = cls._get_provider_instances(provider)
+                # Apply custom prices to instances
+                provider_instances = price_loader.apply_prices(provider_instances)
                 instances.extend(provider_instances)
             except Exception as e:
                 # Log error but continue with other providers
@@ -40,7 +47,13 @@ class VPSAggregator:
         """Get VPS instances from a specific provider."""
         try:
             provider = Provider.objects.get(id=provider_id, user=user)
-            return cls._get_provider_instances(provider)
+            instances = cls._get_provider_instances(provider)
+
+            # Apply custom prices for this provider (single query, no N+1)
+            price_loader = PriceLoader([provider_id])
+            instances = price_loader.apply_prices(instances)
+
+            return instances
         except Provider.DoesNotExist:
             raise ValueError(f"Provider {provider_id} not found or not owned by user")
 
